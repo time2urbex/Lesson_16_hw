@@ -11,96 +11,170 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-
-
-create table User (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    first_name VARCHAR(20) NOT NULL,
-    last_name VARCHAR(20) NOT NULL,
-    age INTEGER NOT NULL,
-    email VARCHAR(50) NOT NULL,
-    role VARCHAR(20) NOT NULL,
-    phone VARCHAR(20) NOT NULL
-
-)
-
-
-create table Offer (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
-    last_name VARCHAR(20) NOT NULL,
-    executor_id INTEGER FOREIGN KEY REFERENCED Order (executor_id) NOT NULL
-
-)
-
-create table Order (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name VARCHAR(20) NOT NULL,
-    description VARCHAR(20) NOT NULL,
-    start_date DATETIME NOT NULL,
-    end_date DATETIME NOT NULL,
-    adress VARCHAR(20) NOT NULL,
-    price INTEGER NOT NULL,
-    customer_id INTEGER NOT NULL,
-    executor_id INTEGER FOREIGN KEY REFERENCED Offer(executor_id) NOT NULL
-
-)
-
-
-@app.route('/users/')
-def get_all_users() -> list[dict]:
-    with open('Users.json', 'w', encoding='utf-8') as users_file:
-        return json.load(users_file)
-
-@app.route('/users/<int:id>')
-def get_user_by_id(id: int) -> dict:
-    for user in get_all_users():
-        if id == user['id']:
-            return user
-    return {}
-
-
-@app.route('/orders/')
-def get_all_orders() -> list[dict]:
-    with open('Orders.json', 'w', encoding='utf-8') as orders_file:
-        return json.load(orders_file)
-
-
-@app.route('/orders/<int:id>')
-def get_order_by_id(id: int) -> dict:
-    for order in get_all_orders():
-        if id == order['id']:
-            return order
-    return {}
-
-@app.route('/offers/')
-def get_all_offers() -> list[dict]:
-    with open('Offers.json', 'w', encoding='utf-8') as offers_file:
-        return json.load(offers_file)
-
-@app.route('/offers/<int:id>')
-def get_offer_by_id(id: int) -> dict:
-    for offer in get_all_offers():
-        if id == offer['id']:
-            return offer
-    return {}
-
-
-
-
-@app.route('/users/')
-def add_user(user):
-    response = requests.post('/', json={"key": "value"})
-
-Class Users(db.Model):
+class User(db.Model):
     __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, unique=True)
     first_name = db.Column(db.String(20))
     last_name = db.Column(db.String(20))
     age = db.Column(db.Integer)
     email = db.Column(db.String(50))
     role  = db.Column(db.String(50))
     phone  = db.Column(db.String(50))
+
+
+class Offer(db.Model):
+    __tablename__ = "offers"
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer)
+    last_name = db.Column(db.String(20))
+    executor_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+
+class Order(db.Model):
+    __tablename__ = "orders"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20))
+    description = db.Column(db.String(200))
+    start_date = db.Column(db.DateTime())
+    end_date = db.Column(db.DateTime())
+    adress = db.Column(db.String(200))
+    price = (db.Integer)
+    customer_id = db.Column(db.String(200))
+    executor_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+
+@app.route('/users/', methods=['GET', 'POST'])
+def get_all_users():
+    with open('Users.json', 'w', encoding='utf-8') as users_file:
+    if request.method == "POST":
+        data = request.json
+        user = User(**data)
+        db.session.add(user)
+        db.session.commit()
+        return "", 201
+    return json.load(users_file)
+
+
+
+@app.route('/users/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+def get_user_by_id(id: int):
+    if request.method == "PUT":
+      data = requests.json
+      user = db.session.query(User).get(id)
+
+      user.id = data.get("id")
+      user.first_name = data.get("first_name")
+      user.last_name = data.get("last_name")
+      user.age = data.get("age")
+      user.email = data.get("email")
+      user.role = data.get("role")
+      user.phone = data.get("phone")
+
+      db.session.add(user)
+      db.session.commit()
+      return "", 204
+
+""" 
+@app.route('/users/<int:id>')
+def get_user_by_id(id: int) -> dict:
+    for user in get_all_users():
+        if id == user['id']:
+            return user
+    return {}
+"""
+
+@app.route('/orders/')
+def get_all_orders() -> list[dict]:
+    with open('Orders.json', 'w', encoding='utf-8') as orders_file:
+        if request.method == "POST":
+            data = request.json
+            order = Order(**data)
+            db.session.add(order)
+            db.session.commit()
+            return "", 201
+        return json.load(orders_file)
+
+
+@app.route('/orders/<int:id>')
+def get_order_by_id(id: int) -> dict:
+    if request.method == "PUT":
+      data = requests.json
+      order = db.session.query(Order).get(id)
+      order.id = data.get("order")
+      order.order_id = data.get("order")
+      order.last_name = data.get("order")
+      order.executor_id = data.get("order")
+
+      db.session.add(offer)
+      db.session.commit()
+      return "", 204
+
+
+
+@app.route('/offers/')
+def get_all_offers() -> list[dict]:
+    with open('Offers.json', 'w', encoding='utf-8') as offers_file:
+        if request.method == "POST":
+            data = request.json
+            offer = Offer(**data)
+            db.session.add(offer)
+            db.session.commit()
+            return "", 201
+        return json.load(offers_file)
+
+@app.route('/offers/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+def get_offer_by_id(id: int) -> dict:
+    if request.method == "PUT":
+      data = requests.json
+      offer = db.session.query(Offer).get(id)
+      offer.id = data.get("offer")
+      offer.order_id = data.get("offer")
+      offer.last_name = data.get("offer")
+      offer.executor_id = data.get("offer")
+
+      db.session.add(offer)
+      db.session.commit()
+      return "", 204
+
+@app.route('/users/', methods=['POST', 'PUT', 'DELETE'])
+def add_user(user):
+    max = User(id=3, order_id = 100, last_name='max', executor_id = 32)
+
+    if request.method == "POST":
+      data = requests.json
+      user = db.session.query(User).get(id)
+      user.id = data.get("user")
+      user.order_id = data.get("user")
+      user.last_name = data.get("user")
+      user.executor_id = data.get("user")
+
+
+    db.session.add(user)
+    db.session.commit()
+
+    if request.method == "PUT":
+      data = requests.json
+      user = db.session.query(User).get(id)
+      user.id = data.get("user")
+      user.order_id = data.get("user")
+      user.last_name = data.get("user")
+      user.executor_id = data.get("user")
+
+      db.session.add(user)
+      db.session.commit()
+
+    if request.method == "DELETE":
+        data = requests.json
+        user = db.session.query(User).get(id)
+        user.id = data.get("user")
+        user.order_id = data.get("user")
+        user.last_name = data.get("user")
+        user.executor_id = data.get("user")
+
+
+        db.session.query(user).delete()
+        db.session.commit()
+
 
 db.create_all()
 
